@@ -1,0 +1,46 @@
+{
+  "name": "microsec-scan",
+  "version": "1.0.0",
+  "description": "AST-based security scanner for Node.js microservices with LLM-assisted refactoring",
+  "main": "src/scanner.js",
+  "bin": {
+    "microsec-scan": "./bin/microsec-scan.js"
+  },
+  "scripts": {
+    "start": "node bin/microsec-scan.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "keywords": [
+    "security",
+    "scanner",
+    "microservices",
+    "ast",
+    "refactoring",
+    "llm",
+    "express",
+    "nestjs",
+    "fastify",
+    "devops",
+    "devsecops"
+  ],
+  "author": "Yousef Negmeldin",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.28.4",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.1",
+    "diff": "^5.2.0",
+    "dotenv": "^17.2.3",
+    "glob": "^11.0.3",
+    "groq-sdk": "^0.8.0",
+    "js-yaml": "^4.1.0",
+    "openai": "^4.20.0"
+  },
+  "devDependencies": {
+    "@babel/traverse": "^7.28.4"
+  }
+}
