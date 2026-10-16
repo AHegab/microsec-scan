@@ -19,7 +19,7 @@ npm link    # puts microsec-scan on your PATH
 
 ## Scan
 
-Point `-p` at the root of the repo that holds your services. Every directory with a `package.json` is treated as a service, and a `docker-compose.yml` at the root is parsed too.
+Point `-p` at the root of the repo that holds your services. Every directory with a `package.json` is treated as a service, and any `docker-compose` file in the tree is parsed too.
 
 ```bash
 microsec-scan scan -p ./shop
@@ -117,8 +117,42 @@ microsec-scan scan -p ./shop -f json -o after.json
 microsec-scan compare -b before.json -c after.json   # writes ./metrics/comparison.json
 ```
 
+## How it works
+
+```mermaid
+flowchart TD
+    root["Project root (-p)"] --> svc["Each directory with a package.json"]
+    root --> files["Every .js / .ts file"]
+    root --> compose["docker-compose files"]
+
+    svc --> fw{"Framework"}
+    fw -->|Express| express["ExpressFramework<br/>routes, middleware"]
+    fw -->|NestJS| nest["NestJSFramework<br/>routes, guards, pipes"]
+    fw -->|Fastify| fastify["FastifyFramework<br/>routes, plugins"]
+    express --> egress["ASTEgressAnalyzer<br/>outbound HTTP, RabbitMQ, Kafka"]
+
+    files --> code["ASTCodeParser<br/>secrets, plaintext URLs"]
+    compose --> cp["composeParser<br/>ports, credentials, root, networks"]
+
+    express --> findings
+    nest --> findings
+    fastify --> findings
+    egress --> findings
+    code --> findings
+    cp --> findings
+    findings[("Findings<br/>rules/registry.js")]
+
+    findings --> report["scan<br/>console or JSON"]
+    findings --> prompts["refactor<br/>PROMPTS.md"]
+    findings --> llm["fix<br/>LLMClient"]
+    llm --> out["fixes/<br/>fixed_files, apply-fixes.sh, rollback.sh"]
+```
+
+JS and TS files are parsed with `@babel/parser`, and most checks look at specific AST nodes, like the first argument to `amqp.connect()` or the config object passed to `new Kafka()`. Compose files are read with `js-yaml`. Each check calls `createFinding()` with a rule ID from the registry, which fills in the severity and message.
+
 ## Limitations
 
+- The service-to-service rules (`MISSING_SERVICE_AUTH`, `MISSING_CIRCUIT_BREAKER`, the message broker rules and so on) come from `ASTEgressAnalyzer`, which currently only runs on Express services. NestJS and Fastify services still get their framework checks plus `INSECURE_HTTP` and `PLAINTEXT_BROKER`.
 - Only Node.js and TypeScript. In a polyglot repo it scans the Node services and skips the rest, though it still checks their outbound calls to services written in other languages.
 - It's static analysis, so connections that are only resolved at runtime (a URL built from env vars, service discovery, a wrapper the scanner doesn't recognise) can be missed. That was the main cause of missed findings in our evaluation.
 - Some rules can only see the code. If you set queue ACLs on the RabbitMQ server itself, for example, the scanner can't see that.
